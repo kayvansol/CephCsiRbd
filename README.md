@@ -149,6 +149,8 @@ Once generated, store the new Secret object in Kubernetes :
 $ kubectl apply -f csi-rbd-secret.yaml
 ```
 
+![alt text](https://raw.githubusercontent.com/kayvansol/CephCsiRbd/refs/heads/main/img/9.webp?raw=true)
+
 CONFIGURE CEPH-CSI PLUGINS
 Create the required ServiceAccount and RBAC ClusterRole/ClusterRoleBinding Kubernetes objects. These objects do not necessarily need to be customized for your Kubernetes environment and therefore can be used as-is from the ceph-csi deployment YAMLs :
 ```
@@ -168,6 +170,8 @@ wget https://raw.githubusercontent.com/ceph/ceph-csi/master/deploy/rbd/kubernete
 kubectl apply -f csi-rbdplugin.yaml
 ```
 
+![alt text](https://raw.githubusercontent.com/kayvansol/CephCsiRbd/refs/heads/main/img/10.webp?raw=true)
+
 Note : To configure the Ceph CSI provisioner deployment to use the host network in a Kubernetes cluster, you need to modify the deployment specification of the provisioner to include the hostNetwork: true parameter. This allows the provisioner to use the host's network namespace instead of the pod's network namespace, which can be beneficial for networking scenarios where the CSI provisioner needs to directly communicate with services outside of the pod network (like Ceph).
 
 In default, at the csi-rbdplugin.yaml file also uses the hostNetwork: true parameter.
@@ -181,6 +185,9 @@ please update deployment and namespace name.
 
 2. Or edit the csi-rbdplugin-provisioner.yaml file & include the ‘hostNetwork’ parameter and then apply it :
 
+![alt text](https://raw.githubusercontent.com/kayvansol/CephCsiRbd/refs/heads/main/img/11.webp?raw=true)
+
+![alt text](https://raw.githubusercontent.com/kayvansol/CephCsiRbd/refs/heads/main/img/12.webp?raw=true)
 
 CREATE A STORAGECLASS
 The Kubernetes StorageClass defines a class of storage. Multiple StorageClass objects can be created to map to different quality-of-service levels (i.e. NVMe vs HDD-based pools) and features.
@@ -214,9 +221,13 @@ kubectl apply -f csi-rbd-sc.yaml
 
 Note that in Kubernetes v1.14 and v1.15 volume expansion feature was in alpha status and required enabling ExpandCSIVolumes feature gate.
 
+![alt text](https://raw.githubusercontent.com/kayvansol/CephCsiRbd/refs/heads/main/img/13.webp?raw=true)
+
 ```
 k describe sc csi-rbd-sc
 ```
+
+![alt text](https://raw.githubusercontent.com/kayvansol/CephCsiRbd/refs/heads/main/img/14.webp?raw=true)
 
 CREATE A Persistent Volume Claim
 A Persistent Volume Claim is a request for abstract storage resources by a user. The PersistentVolumeClaim would then be associated to a Pod resource to provision a PersistentVolume, which would be backed by a Ceph block image. An optional volumeMode can be included to select between a mounted file system (default) or raw block device-based volume.
@@ -242,6 +253,9 @@ spec:
 EOF
 kubectl apply -f pvc.yaml
 ```
+
+![alt text](https://raw.githubusercontent.com/kayvansol/CephCsiRbd/refs/heads/main/img/15.webp?raw=true)
+
 CREATE A POD
 The following demonstrates and example of binding the above PersistentVolumeClaim to a Pod resource as a mounted file system :
 ```
