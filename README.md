@@ -281,29 +281,39 @@ EOF
 kubectl apply -f pod.yaml
 ```
 
+![alt text](https://raw.githubusercontent.com/kayvansol/CephCsiRbd/refs/heads/main/img/16.webp?raw=true)
+
 ```
 k describe pod csi-rbd-demo-pod
 ```
 
+![alt text](https://raw.githubusercontent.com/kayvansol/CephCsiRbd/refs/heads/main/img/17.webp?raw=true)
 
 ```
 k describe pvc rbd-pvc
 ```
 
+![alt text](https://raw.githubusercontent.com/kayvansol/CephCsiRbd/refs/heads/main/img/18.webp?raw=true)
+
 Monitoring :
 
 You can see the activity of the ceph pool after binding to a pod :
 
+![alt text](https://raw.githubusercontent.com/kayvansol/CephCsiRbd/refs/heads/main/img/19.webp?raw=true)
+
+![alt text](https://raw.githubusercontent.com/kayvansol/CephCsiRbd/refs/heads/main/img/20.webp?raw=true)
 
 writing action to the ceph pool :
 
+![alt text](https://raw.githubusercontent.com/kayvansol/CephCsiRbd/refs/heads/main/img/21.webp?raw=true)
 
+![alt text](https://raw.githubusercontent.com/kayvansol/CephCsiRbd/refs/heads/main/img/22.webp?raw=true)
 
 Test the pod storage :
 
 After deleting the pod and creation of it again, the older data remains at the new pod because the data stores at ceph cluster
 
-
+![alt text](https://raw.githubusercontent.com/kayvansol/CephCsiRbd/refs/heads/main/img/23.webp?raw=true)
 
 
 To create a block-based PersistentVolumeClaim that utilizes the ceph-csi-based StorageClass created above, the following YAML can be used to request raw block storage from the csi-rbd-sc StorageClass :
@@ -351,4 +361,4 @@ EOF
 kubectl apply -f raw-block-pod.yaml
 ```
 
-
+![alt text](https://raw.githubusercontent.com/kayvansol/CephCsiRbd/refs/heads/main/img/24.webp?raw=true)
