@@ -1,6 +1,6 @@
 # Ceph csi rbd On Kubernetes Cluster
 
-
+![alt text](https://raw.githubusercontent.com/kayvansol/CephCsiRbd/refs/heads/main/img/1.webp?raw=true)
 
 The Container Storage Interface (CSI) provides a consistent and extensible framework for storage vendors to integrate their solutions with Kubernetes. It enables seamless integration of different storage systems, allowing users to take advantage of the unique features and capabilities of their chosen storage backend.
 
@@ -9,6 +9,10 @@ Kubernetes Ceph CSI is a CSI driver that enables Kubernetes clusters to leverage
 You may use Ceph Block Device images with Kubernetes through ceph-csi, which dynamically provisions RBD images to back Kubernetes volumes and maps these RBD images as block devices (optionally mounting a file system contained within the image) on worker nodes running pods that reference an RBD-backed volume. Ceph stripes block device images as objects across the cluster, which means that large Ceph Block Device images have better performance than a standalone server!
 
 To use Ceph Block Devices with Kubernetes, you must install and configure ceph-csi within your Kubernetes environment.
+
+![alt text](https://raw.githubusercontent.com/kayvansol/CephCsiRbd/refs/heads/main/img/2.webp?raw=true)
+
+![alt text](https://raw.githubusercontent.com/kayvansol/CephCsiRbd/refs/heads/main/img/3.webp?raw=true)
 
 At the Ceph Cluster side :
 
@@ -25,6 +29,8 @@ See Create a Pool for details on specifying the number of placement groups for y
 rbd pool init kubernetes
 ```
 
+![alt text](https://raw.githubusercontent.com/kayvansol/CephCsiRbd/refs/heads/main/img/4.webp?raw=true)
+
 SETUP CEPH CLIENT AUTHENTICATION
 Create a new user for Kubernetes and ceph-csi. Execute the following and record the generated key :
 ```
@@ -37,13 +43,19 @@ the result is :
     key = AQDS7VVnV2MlAhAAG03XBGjyLpgsOlovWw36OQ==
 ```
 
+![alt text](https://raw.githubusercontent.com/kayvansol/CephCsiRbd/refs/heads/main/img/5.webp?raw=true)
+
 GENERATE CEPH-CSI CONFIGMAP
 The ceph-csi requires a ConfigMap object stored in Kubernetes to define the the Ceph monitor addresses for the Ceph cluster. Collect both the Ceph cluster unique fsid and the monitor addresses :
 ```
 ceph mon dump
 ```
 
+![alt text](https://raw.githubusercontent.com/kayvansol/CephCsiRbd/refs/heads/main/img/6.webp?raw=true)
+
 At the Kubernetes Cluster side :
+
+![alt text](https://raw.githubusercontent.com/kayvansol/CephCsiRbd/refs/heads/main/img/7.webp?raw=true)
 
 ConfigMap :
 
@@ -114,6 +126,8 @@ Once generated, store the new ConfigMap object in Kubernetes :
 ```
 kubectl apply -f ceph-config-map.yaml
 ```
+
+![alt text](https://raw.githubusercontent.com/kayvansol/CephCsiRbd/refs/heads/main/img/8.webp?raw=true)
 
 GENERATE CEPH-CSI CEPHX SECRET
 ceph-csi requires the cephx credentials for communicating with the Ceph cluster. Generate a csi-rbd-secret.yaml file similar to the example below, using the newly created Kubernetes user id and cephx key :
