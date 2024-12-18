@@ -1,5 +1,7 @@
 # Ceph csi rbd On Kubernetes Cluster
 
+
+
 The Container Storage Interface (CSI) provides a consistent and extensible framework for storage vendors to integrate their solutions with Kubernetes. It enables seamless integration of different storage systems, allowing users to take advantage of the unique features and capabilities of their chosen storage backend.
 
 Kubernetes Ceph CSI is a CSI driver that enables Kubernetes clusters to leverage the power of Ceph for persistent storage management. It simplifies the provisioning and management of Ceph storage for containerized applications, providing a seamless experience for developers and administrators alike. Let’s delve into some of the key benefits and features of Kubernetes Ceph CSI.
@@ -277,5 +279,48 @@ After deleting the pod and creation of it again, the older data remains at the n
 
 
 To create a block-based PersistentVolumeClaim that utilizes the ceph-csi-based StorageClass created above, the following YAML can be used to request raw block storage from the csi-rbd-sc StorageClass :
+```
+cat <<EOF > raw-block-pvc.yaml
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: raw-block-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  volumeMode: Block
+  resources:
+    requests:
+      storage: 1Gi
+  storageClassName: csi-rbd-sc
+EOF
+kubectl apply -f raw-block-pvc.yaml
+```
+
+The following demonstrates and example of binding the above PersistentVolumeClaim to a Pod resource as a raw block device :
+```
+cat <<EOF > raw-block-pod.yaml
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod-with-raw-block-volume
+spec:
+  containers:
+    - name: fc-container
+      image: fedora:26
+      command: ["/bin/sh", "-c"]
+      args: ["tail -f /dev/null"]
+      volumeDevices:
+        - name: data
+          devicePath: /dev/xvda
+  volumes:
+    - name: data
+      persistentVolumeClaim:
+        claimName: raw-block-pvc
+EOF
+kubectl apply -f raw-block-pod.yaml
+```
 
 
