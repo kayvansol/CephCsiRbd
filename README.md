@@ -115,4 +115,167 @@ kubectl apply -f ceph-config-map.yaml
 
 GENERATE CEPH-CSI CEPHX SECRET
 ceph-csi requires the cephx credentials for communicating with the Ceph cluster. Generate a csi-rbd-secret.yaml file similar to the example below, using the newly created Kubernetes user id and cephx key :
+```
+cat <<EOF > csi-rbd-secret.yaml
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: csi-rbd-secret
+  namespace: default
+stringData:
+  userID: kubernetes
+  userKey: AQDS7VVnV2MlAhAAG03XBGjyLpgsOlovWw36OQ==
+EOF
+```
+Once generated, store the new Secret object in Kubernetes :
+```
+$ kubectl apply -f csi-rbd-secret.yaml
+```
+
+CONFIGURE CEPH-CSI PLUGINS
+Create the required ServiceAccount and RBAC ClusterRole/ClusterRoleBinding Kubernetes objects. These objects do not necessarily need to be customized for your Kubernetes environment and therefore can be used as-is from the ceph-csi deployment YAMLs :
+```
+kubectl apply -f https://raw.githubusercontent.com/ceph/ceph-csi/master/deploy/rbd/kubernetes/csi-provisioner-rbac.yaml
+
+kubectl apply -f https://raw.githubusercontent.com/ceph/ceph-csi/master/deploy/rbd/kubernetes/csi-nodeplugin-rbac.yaml
+```
+
+Finally, create the ceph-csi provisioner and node plugins. With the possible exception of the ceph-csi container release version, these objects do not necessarily need to be customized for your Kubernetes environment and therefore can be used as-is from the ceph-csi deployment YAMLs :
+```
+wget https://raw.githubusercontent.com/ceph/ceph-csi/master/deploy/rbd/kubernetes/csi-rbdplugin-provisioner.yaml
+
+kubectl apply -f csi-rbdplugin-provisioner.yaml
+
+wget https://raw.githubusercontent.com/ceph/ceph-csi/master/deploy/rbd/kubernetes/csi-rbdplugin.yaml
+
+kubectl apply -f csi-rbdplugin.yaml
+```
+
+Note : To configure the Ceph CSI provisioner deployment to use the host network in a Kubernetes cluster, you need to modify the deployment specification of the provisioner to include the hostNetwork: true parameter. This allows the provisioner to use the host's network namespace instead of the pod's network namespace, which can be beneficial for networking scenarios where the CSI provisioner needs to directly communicate with services outside of the pod network (like Ceph).
+
+In default, at the csi-rbdplugin.yaml file also uses the hostNetwork: true parameter.
+
+1. Edit provisioner deployment by kubectl patch :
+```
+kubectl patch deployment <deployment-name> -n <namespace> \
+--patch '{"spec":{"template":{"spec":{"hostNetwork":true}}}}'
+```
+please update deployment and namespace name.
+
+2. Or edit the csi-rbdplugin-provisioner.yaml file & include the ‘hostNetwork’ parameter and then apply it :
+
+
+CREATE A STORAGECLASS
+The Kubernetes StorageClass defines a class of storage. Multiple StorageClass objects can be created to map to different quality-of-service levels (i.e. NVMe vs HDD-based pools) and features.
+
+For example, to create a ceph-csi StorageClass that maps to the kubernetes pool created above, the following YAML file can be used after ensuring that the “clusterID” property matches your Ceph cluster’s fsid :
+```
+cat <<EOF > csi-rbd-sc.yaml
+---
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+   name: csi-rbd-sc
+provisioner: rbd.csi.ceph.com
+parameters:
+   clusterID: f374857a-b28f-11ef-97e5-37412429fbe1
+   pool: kubernetes
+   imageFeatures: layering
+   csi.storage.k8s.io/provisioner-secret-name: csi-rbd-secret
+   csi.storage.k8s.io/provisioner-secret-namespace: default
+   csi.storage.k8s.io/controller-expand-secret-name: csi-rbd-secret
+   csi.storage.k8s.io/controller-expand-secret-namespace: default
+   csi.storage.k8s.io/node-stage-secret-name: csi-rbd-secret
+   csi.storage.k8s.io/node-stage-secret-namespace: default
+reclaimPolicy: Delete
+allowVolumeExpansion: true
+mountOptions:
+   - discard
+EOF
+kubectl apply -f csi-rbd-sc.yaml
+```
+
+Note that in Kubernetes v1.14 and v1.15 volume expansion feature was in alpha status and required enabling ExpandCSIVolumes feature gate.
+
+```
+k describe sc csi-rbd-sc
+```
+
+CREATE A Persistent Volume Claim
+A Persistent Volume Claim is a request for abstract storage resources by a user. The PersistentVolumeClaim would then be associated to a Pod resource to provision a PersistentVolume, which would be backed by a Ceph block image. An optional volumeMode can be included to select between a mounted file system (default) or raw block device-based volume.
+
+Using ceph-csi, specifying Filesystem for volumeMode can support both ReadWriteOnce and ReadOnlyMany accessMode claims, and specifying Block for volumeMode can support ReadWriteOnce, ReadWriteMany, and ReadOnlyMany accessMode claims.
+
+For example, to create a file-system-based PersistentVolumeClaim that utilizes the ceph-csi-based StorageClass created above, the following YAML can be used to request a mounted file system (backed by an RBD image) from the csi-rbd-sc StorageClass :
+```
+cat <<EOF > pvc.yaml
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: rbd-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  volumeMode: Filesystem
+  resources:
+    requests:
+      storage: 1Gi
+  storageClassName: csi-rbd-sc
+EOF
+kubectl apply -f pvc.yaml
+```
+CREATE A POD
+The following demonstrates and example of binding the above PersistentVolumeClaim to a Pod resource as a mounted file system :
+```
+cat <<EOF > pod.yaml
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: csi-rbd-demo-pod
+spec:
+  containers:
+    - name: web-server
+      image: nginx
+      volumeMounts:
+        - name: mypvc
+          mountPath: /var/lib/www/html
+  volumes:
+    - name: mypvc
+      persistentVolumeClaim:
+        claimName: rbd-pvc
+        readOnly: false
+EOF
+kubectl apply -f pod.yaml
+```
+
+```
+k describe pod csi-rbd-demo-pod
+```
+
+
+```
+k describe pvc rbd-pvc
+```
+
+Monitoring :
+
+You can see the activity of the ceph pool after binding to a pod :
+
+
+writing action to the ceph pool :
+
+
+
+Test the pod storage :
+
+After deleting the pod and creation of it again, the older data remains at the new pod because the data stores at ceph cluster
+
+
+
+
+To create a block-based PersistentVolumeClaim that utilizes the ceph-csi-based StorageClass created above, the following YAML can be used to request raw block storage from the csi-rbd-sc StorageClass :
+
 
